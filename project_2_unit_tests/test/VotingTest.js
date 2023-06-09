@@ -3,7 +3,7 @@ const { expect, assert } = require('chai');
 const { isCallTrace } = require('hardhat/internal/hardhat-network/stack-traces/message-trace');
 
 describe('Test Voting', function() {
-    let owner, voting, voter, proposal
+    let owner, signers, voting;
 
 
     beforeEach(async function() {
@@ -42,6 +42,57 @@ describe('Test Voting', function() {
             await expect(voting.connect(owner).addVoter(voter1.address)).to.be.revertedWith('Already registered');
         })  
     });
+
+    // Getter getVoter tests //
+
+    describe('get registered voters', function() {
+
+        beforeEach(async function() {
+            let signers = await ethers.getSigners();
+            owner = signers[0];
+            voter1 = signers[1];
+            voter2 = signers[2];
+            // voter3 = signers[3];
+            voter4 = signers[4];
+            voter5 = signers[5];
+            voter6 = signers[6];
+            await voting.connect(owner).addVoter(voter1.address);
+            await voting.connect(owner).addVoter(voter2.address);
+            await voting.connect(owner).addVoter(voter4.address);
+            await voting.connect(owner).addVoter(voter5.address);
+            await voting.connect(owner).addVoter(voter6.address);
+        });
+        it('retrieves info voters', async function() {
+            let voterInfo = await voting.connect(voter1).getVoter(voter1.address);
+            expect(voterInfo.hasVoted).to.equal(false);
+            expect(voterInfo.votedProposalId).to.equal(0);
+        })
+    });
+
+
+    // Getter getOneProposal tests //
+
+    describe('get registered proposals', function() {
+
+        beforeEach(async function() {
+            let signers = await ethers.getSigners();
+            voter1 = signers[1];
+            voter2 = signers[2];        
+            await voting.connect(owner).addVoter(voter1.address);
+            await voting.connect(owner).addVoter(voter2.address);
+            await voting.connect(owner).startProposalsRegistering();
+        });
+        it('retrieves the proposal content correctly', async function() {
+
+            await voting.connect(voter1).addProposal('Proposal 1');
+            await voting.connect(voter2).addProposal('Proposal 2');
+            let proposal = await voting.connect(voter1).getOneProposal(1);
+            expect(proposal.description).to.equal('Proposal 1');
+            proposal = await voting.connect(voter2).getOneProposal(2);
+            expect(proposal.description).to.equal('Proposal 2');
+        })
+    })
+
 
     // Proposal tests // (test genesis proposal??)
 
@@ -205,9 +256,81 @@ describe('Test Voting', function() {
 
     // Test tally votes
 
+    describe('count votes and get winner', function() {
 
+        beforeEach(async function() {
+           
+            await voting.connect(owner).startProposalsRegistering();
+            await voting.connect(owner).endProposalsRegistering();
+            await voting.connect(owner).startVotingSession();
+            await voting.connect(owner).endVotingSession();
+        })
+        
+        it('tally votes and get winner', async function() {
+            await voting.connect(owner).tallyVotes();
     
-            
+            let winningProposalId = await voting.winningProposalID();
+    
+            let expectedWinningProposalId = 0; 
+            expect(winningProposalId).to.equal(expectedWinningProposalId);
+        })
+    })
+
+    describe('count votes accurately and get winner', function() {
+
+        beforeEach(async function() {
+            let signers = await ethers.getSigners();
+            owner = signers[0];
+            voter1 = signers[1];
+            voter2 = signers[2];
+            // voter3 = signers[3];
+            voter4 = signers[4];
+            voter5 = signers[5];
+            voter6 = signers[6];
+            await voting.connect(owner).addVoter(voter1.address);
+            await voting.connect(owner).addVoter(voter2.address);
+            await voting.connect(owner).addVoter(voter4.address);
+            await voting.connect(owner).addVoter(voter5.address);
+            await voting.connect(owner).addVoter(voter6.address);
+            await voting.connect(owner).startProposalsRegistering();
+            await voting.connect(voter1).addProposal('Proposal 1');
+            await voting.connect(voter2).addProposal('Proposal 2');
+            await voting.connect(owner).endProposalsRegistering();
+            await voting.connect(owner).startVotingSession();
+            await voting.connect(voter1).setVote(1);
+            await voting.connect(voter2).setVote(1);
+            await voting.connect(voter4).setVote(0);
+            await voting.connect(voter5).setVote(1);
+            await voting.connect(voter6).setVote(1);
+            await voting.connect(owner).endVotingSession();
+        })
+        
+        it('tally votes and get winner', async function() {
+            await voting.connect(owner).tallyVotes();
+    
+            let winningProposalId = await voting.winningProposalID();
+    
+            let expectedWinningProposalId = 1; 
+            expect(winningProposalId).to.equal(expectedWinningProposalId);
+        })
+    })
+
+
+
+    describe('count votes before voting ended', async function() {
+
+        beforeEach(async function() {
+            await voting.connect(owner).startProposalsRegistering();
+            await voting.connect(owner).endProposalsRegistering();
+            await voting.connect(owner).startVotingSession();
+
+        })
+    
+        it('tally votes with workflow status not in voting session ended should revert', async function() { 
+            await expect(voting.connect(owner).tallyVotes()).to.be.reverted;
+        }) 
+
+    });        
     });
     });
 });
