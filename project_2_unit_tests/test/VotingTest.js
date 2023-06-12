@@ -94,7 +94,7 @@ describe('Test Voting', function() {
     })
 
 
-    // Proposal tests // (test genesis proposal??)
+    // Proposal tests // 
 
     describe('Registering proposal', function() {
         let voter1;
@@ -234,7 +234,8 @@ describe('Test Voting', function() {
             });
         });
 
-        // Check that Owner can register as voter and cast a vote
+        // Check that Owner can register as voter and cast a vote //
+
         describe('check owner can vote only if he registers as voter', function() {
         
         beforeEach(async function() {
@@ -254,7 +255,7 @@ describe('Test Voting', function() {
         })
     });
 
-    // Test tally votes
+    // Test tally votes //
 
     describe('count votes and get winner', function() {
 
@@ -314,8 +315,6 @@ describe('Test Voting', function() {
             expect(winningProposalId).to.equal(expectedWinningProposalId);
         })
     })
-
-
 
     describe('count votes before voting ended', async function() {
 
